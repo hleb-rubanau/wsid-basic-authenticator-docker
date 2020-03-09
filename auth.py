@@ -19,9 +19,9 @@ if __name__ != '__main__':
     root_logger.setLevel(gunicorn_logger.level)
 
 class Authenticator:
-    def __init__(self):
+    def __init__(self, debug_logger=None):
         with open(WHITELIST_CONFIG_PATH,'r') as f:
-            identification_whitelist=simple_ruleset( f.readlines() )
+            identification_whitelist=simple_ruleset( f.readlines(), debug_logger )
 
         self.authenticator=PasswordAuthenticator(whitelist=identification_whitelist)
 
@@ -40,15 +40,21 @@ class PublicSSHKeysManager:
                 parser.read(SSH_CONFIG_PATH)
 
                 for section in parser:
+                    if section=='DEFAULT':
+                        continue
+
+                    self.logger.debug(f'processing section {section}')
                     username=section.split(':')[0]
                     command = ':'.join(section.split(':')[1:]) if ':' in section else '*'
 
+                    self.logger.debug(f'username={username} command={command}')
                     if not username in self.ssh_config:
                         self.ssh_config[username]={}
                     if not command in self.ssh_config[username]:
                         self.ssh_config[username][command]=set()
 
-                    for remote_identity in section:
+                    for remote_identity in parser[section]:
+                        self.logger.debug(f'Adding ssh_config[{username}][{command}] << {remote_identity}')
                         self.ssh_config[username][command].add(remote_identity)
 
         self.logger.debug(f"ssh_config: {self.ssh_config}")
@@ -68,7 +74,8 @@ class PublicSSHKeysManager:
         return authorized_keys
                          
 
-AUTHENTICATOR=Authenticator()
+#AUTHENTICATOR=Authenticator()
+AUTHENTICATOR=Authenticator(app.logger) # for debug purposes
 PUBLIC_KEYS=PublicSSHKeysManager()
 
 # default endpoint is used to process nginx authorization requests
@@ -81,14 +88,22 @@ def nginx_auth():
     if not request.authorization:
         return '{"msg":"Authenticate!"}', 401
 
+    username=request.authorization.username
+    password=request.authorization.password
+
+    if username='https' and password.startswith('//'):
+        app.logger.debug(f"Fixing username")
+        username=':'.join( username, password.split(':')[0])
+        password=':'.join(password.split(':')[1:])
+
+    app.logger.debug(f"Authenticating: username={username}")
     # we are not blindly checking each and every username
-    if not IDENTIFIER.authenticate_by_password(request.authorization.username, 
-                                               request.authorization.password):
+    if not AUTHENTICATOR.authenticate_by_password(username, password):
         return '{}', 403
 
     # TODO: add configurable authorization policies based on confirmed identity and request parameters
-    response=jsonify({"status": "ok", "user": request.authorization.username})
-    response.headers['X-WSID-Identity']=request.authorization.username
+    response=jsonify({"status": "ok", "user": username})
+    response.headers['X-WSID-Identity']=username
     return response
 
 
