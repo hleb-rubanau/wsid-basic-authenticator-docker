@@ -3,12 +3,20 @@ from wsid.basic.identification import PasswordAuthenticator, get_public_ssh_keys
 from wsid.basic.simple_policy import simple_ruleset
 import configparser
 import os.path
+import logging
 
 app = Flask(__name__)
 
 WHITELIST_CONFIG_PATH='/settings/identification_whitelist.conf'
 SSH_CONFIG_PATH='/settings/ssh.conf'
 
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+    root_logger=logging.getLogger()
+    root_logger.handlers = gunicorn_logger.handlers
+    root_logger.setLevel(gunicorn_logger.level)
 
 class Authenticator:
     def __init__(self):
@@ -24,6 +32,8 @@ class Authenticator:
 class PublicSSHKeysManager:
     def __init__(self):
         self.ssh_config={}
+        self.logger=logging.getLogger('wsid.basic.pubkeys')
+
         if os.path.exists(SSH_CONFIG_PATH):
             with open(SSH_CONFIG_PATH, 'r') as sshconf:
                 parser = configparser.ConfigParser(allow_no_value=True)
@@ -40,6 +50,8 @@ class PublicSSHKeysManager:
 
                     for remote_identity in section:
                         self.ssh_config[username][command].add(remote_identity)
+
+        self.logger.debug(f"ssh_config: {self.ssh_config}")
 
     def get_authorized_keys(self, username):
         if not username in self.ssh_config:
