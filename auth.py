@@ -26,14 +26,14 @@ class PublicSSHKeysManager:
         self.ssh_config={}
         if os.path.exists(SSH_CONFIG_PATH):
             with open(SSH_CONFIG_PATH, 'r') as sshconf:
-                parser = configparser.ConfigParser()
+                parser = configparser.ConfigParser(allow_no_value=True)
                 parser.read(SSH_CONFIG_PATH)
 
                 for section in parser:
                     username=section.split(':')[0]
                     command = ':'.join(section.split(':')[1:]) if ':' in section else '*'
 
-                    if not username in ssh_config:
+                    if not username in self.ssh_config:
                         self.ssh_config[username]={}
                     if not command in self.ssh_config[username]:
                         self.ssh_config[username][command]=set()
