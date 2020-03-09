@@ -12,8 +12,8 @@ SSH_CONFIG_PATH='/settings/ssh.conf'
 
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger("gunicorn.error")
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
+    #app.logger.handlers = gunicorn_logger.handlers
+    #app.logger.setLevel(gunicorn_logger.level)
     root_logger=logging.getLogger()
     root_logger.handlers = gunicorn_logger.handlers
     root_logger.setLevel(gunicorn_logger.level)
@@ -91,9 +91,9 @@ def nginx_auth():
     username=request.authorization.username
     password=request.authorization.password
 
-    if username='https' and password.startswith('//'):
+    if username=='https' and password.startswith('//'):
         app.logger.debug(f"Fixing username")
-        username=':'.join( username, password.split(':')[0])
+        username=':'.join( [ username, password.split(':')[0] ])
         password=':'.join(password.split(':')[1:])
 
     app.logger.debug(f"Authenticating: username={username}")
