@@ -48,7 +48,7 @@ class PublicSSHKeysManager:
         authorized_keys=[]
         for command, identities in self.ssh_config[username].items():
             for remote_identity in identities:
-                for k in get_public_ssh_keys(remote_identities): 
+                for k in get_public_ssh_keys(remote_identity): 
                     if command=='*':
                         authorized_keys.append(k)
                     else:
