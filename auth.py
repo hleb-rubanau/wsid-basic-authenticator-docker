@@ -70,7 +70,7 @@ class PublicSSHKeysManager:
                     if command=='*':
                         authorized_keys.append(k)
                     else:
-                        authorized_keys.append(f"command=\"{command}\" {k}")
+                        authorized_keys.append(f"command=\"{command}\"{k}")
         return authorized_keys
                          
 
