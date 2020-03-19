@@ -88,22 +88,35 @@ def nginx_auth():
     if not request.authorization:
         return '{"msg":"Authenticate!"}', 401
 
-    username=request.authorization.username
+    user_id=request.authorization.username
     password=request.authorization.password
 
-    if username=='https' and password.startswith('//'):
-        app.logger.debug(f"Fixing username")
-        username=':'.join( [ username, password.split(':')[0] ])
+    if user_id=='https' and password.startswith('//'):
+        app.logger.debug(f"Fixing user id")
+        user_id=':'.join( [ user_id, password.split(':')[0] ])
         password=':'.join(password.split(':')[1:])
 
-    app.logger.debug(f"Authenticating: username={username}")
+    app.logger.debug(f"Authenticating: user_id={user_id}")
     # we are not blindly checking each and every username
-    if not AUTHENTICATOR.authenticate_by_password(username, password):
+    if not AUTHENTICATOR.authenticate_by_password(user_id, password):
         return '{}', 403
 
+
+    # normalization: if username
+    if user_id.startswith('https://'):
+        user_id=user_id[len('https://'):]
+
+    userdomain = user_id.split('/')[0]
+    username   = user_id.strip('/').split('/')[-1]
+
     # TODO: add configurable authorization policies based on confirmed identity and request parameters
-    response=jsonify({"status": "ok", "user": username})
-    response.headers['X-WSID-Identity']=username
+    response=jsonify({"status": "ok", 
+                        "id": user_id, 
+                        'user': username, 
+                        'domain': userdomain })
+    response.headers['X-WSID-Identity']=user_id
+    response.headers['X-WSID-Identity-Domain']=userdomain
+    response.headers['X-WSID-Identity-User']=user
     return response
 
 
