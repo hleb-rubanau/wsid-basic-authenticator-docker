@@ -116,7 +116,7 @@ def nginx_auth():
                         'domain': userdomain })
     response.headers['X-WSID-Identity']=user_id
     response.headers['X-WSID-Identity-Domain']=userdomain
-    response.headers['X-WSID-Identity-User']=user
+    response.headers['X-WSID-Identity-User']=username
     return response
 
 
